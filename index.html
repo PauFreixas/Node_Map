@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continents and Oceans Graph (Undirected)</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .node {
+            stroke: #fff;
+            stroke-width: 1.5px;
+        }
+
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+
+        .label {
+            font-size: 12px;
+            text-anchor: middle;
+            pointer-events: none; /* So that the text doesn't interfere with node interaction */
+        }
+    </style>
+</head>
+<body>
+    <svg width="800" height="800"></svg>
+    <script>
+        const width = 800;
+        const height = 800;
+
+        const NODE_SCALE_FACTOR = 3;
+
+        // Data for continents and oceans
+        const nodes = [
+            //Continents
+            {id: "Africa", type: "continent", landmass: 30},
+            {id: "Antarctica", type: "continent", landmass: 14},
+            {id: "Asia", type: "continent", landmass: 44},
+            {id: "Europe", type: "continent", landmass: 10},
+            {id: "North America", type: "continent", landmass: 24},
+            {id: "South America", type: "continent", landmass: 18},
+            {id: "Australia (Oceania)", type: "continent", landmass: 8},
+            {id: "Atlantic Ocean", type: "ocean", surface_area: 85},
+            {id: "Pacific Ocean", type: "ocean", surface_area: 168},
+            {id: "Indian Ocean", type: "ocean", surface_area: 70},
+            {id: "Arctic Ocean", type: "ocean", surface_area: 15},
+            {id: "Antarctic Ocean", type:"ocean", surface_area: 21}
+        ];
+
+        const links = [
+            //Land to ocean
+            {source: "Africa", target: "Atlantic Ocean"},
+            {source: "Africa", target: "Indian Ocean"},
+            {source: "Asia", target: "Indian Ocean"},
+            {source: "Asia", target: "Pacific Ocean"},
+            {source: "North America", target: "Atlantic Ocean"},
+            {source: "North America", target: "Pacific Ocean"},
+            {source: "South America", target: "Atlantic Ocean"},
+            {source: "South America", target: "Pacific Ocean"},
+            {source: "Australia (Oceania)", target: "Indian Ocean"},
+            {source: "Europe", target: "Atlantic Ocean"},
+            //Land to land
+            {source: "North America", target: "South America"},
+            {source: "Europe", target: "Asia"},
+            //Ocean to ocean
+            {source: "Atlantic Ocean", target: "Arctic ocean"}
+        ];
+
+        // Create SVG container
+        const svg = d3.select("svg");
+
+        // Create force simulation
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(200))  // Force to simulate undirected links
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .on("tick", ticked);
+
+        // Create link elements (for undirected graph, no direction needed)
+        const link = svg.selectAll(".link")
+            .data(links)
+            .enter().append("line")
+            .attr("class", "link");
+
+        // Create node elements (continents and oceans)
+        const node = svg.selectAll(".node")
+            .data(nodes)
+            .enter().append("circle")
+            .attr("class", "node")
+            .attr("r", d => Math.sqrt(d.type === "continent" ? d.landmass : d.surface_area) * NODE_SCALE_FACTOR) // Scaling size based on landmass or surface area
+            .style("fill", d => d.type === "continent" ? "grey" : "cyan");
+
+        // Add labels for each node (continents and oceans)
+        const labels = svg.selectAll(".label")
+            .data(nodes)
+            .enter().append("text")
+            .attr("class", "label")
+            .text(d => d.id)
+            .style("fill", "#000")  // Black color for the labels
+            .style("font-size", "12px")
+            .style("pointer-events", "none");
+
+        // Function to update node and link positions during simulation ticks
+        function ticked() {
+            // Update link positions (for undirected, no need for directionality)
+            link.attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            // Update node positions (with wraparound behavior)
+            node.attr("cx", d => wrapAround(d.x, width))
+                .attr("cy", d => wrapAround(d.y, height));
+
+            // Update label positions (slightly offset from the node)
+            labels.attr("x", d => wrapAround(d.x, width))
+                .attr("y", d => wrapAround(d.y, height))
+                .attr("dy", -10);  // Slightly above the node to avoid overlap
+        }
+
+        // Wrap-around function to simulate the toroidal effect (edge wrapping)
+        function wrapAround(value, max) {
+            if (value < 0) {
+                return max + value;  // If it goes off the left side, come back from the right
+            } else if (value > max) {
+                return value - max;  // If it goes off the right side, come back from the left
+            }
+            return value;
+        }
+    </script>
+</body>
+</html>
